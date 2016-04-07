@@ -2,14 +2,16 @@
 #include "Vector2D.h"
 #include <functional>
 #include <memory>
+#include <cstdlib>
 
 World::World(int width, int height) : mWidth(width),
 				      mHeight(height),
+				      mState(GameState::RUNNING),
 				      mShip{Vector2D<float>(50,height-150),
                                             Vector2D<float>(0,0),50, 50, 1}
 {
     Vector2D<float> pos(40, 20);
-    createFormation(pos, 5,5);
+    spawnEnemies();
 }
 
 void World::addGameObject(GameObjectType type, GameObject* gameObject) {
@@ -29,9 +31,11 @@ GameObjects& World::getGameObjects(GameObjectType type) {
   return mGameObjects[static_cast<int>(type)];
 }
 
-void World::createFormation(Vector2D<float> pos, int rows, int cols) {
-  const int width = 50;
-  const int height = 50;
+void World::createFormation(Vector2D<float> pos,
+			    int rows,
+			    int cols,
+			    int width,
+			    int height) {
   for (int row = 0; row < rows; row++) {
     for (int col = 0; col < cols; col++) {
       auto x = pos.getX() + row * width;
@@ -57,6 +61,16 @@ void World::updateGameObjects(int elapsedMSec) {
   }
 }
 
+bool World::collisionDetect(GameObjects& gs, GameObject& a) {
+  for (auto g : gs) {
+    bool colision = a.checkCollision(*g);
+    if (colision) {
+      return true;
+    }
+  }
+  return false;
+}
+
 tuple<set<GameObject*>,set<GameObject*>> World::collisionDetect(GameObjects& gs1,
 								GameObjects& gs2){
   tuple<set<GameObject*>,set<GameObject*>> gSets;
@@ -71,7 +85,56 @@ tuple<set<GameObject*>,set<GameObject*>> World::collisionDetect(GameObjects& gs1
   return gSets;
 }
 
+void World::resolveCollisions() {
+  auto& enemies = getGameObjects(GameObjectType::ENEMY);
+  auto collisions = collisionDetect(getGameObjects(GameObjectType::BULLET),
+				    enemies);
+  auto& collidedBullets = get<0>(collisions);
+  for (auto bullet : collidedBullets) {
+    removeGameObject(GameObjectType::BULLET, bullet);
+  }
+  auto& collidedEnemies = get<1>(collisions);
+  for (auto enemy : collidedEnemies) {
+    removeGameObject(GameObjectType::ENEMY, enemy);
+  }
+  if (collisionDetect(enemies, mShip)) {
+    mState = GameState::GAMEOVER;
+  }
+}
+
+void World::spawnEnemies() {
+  const int count = 4;
+  int scenarios[count][4] = {
+    {5, 5, 20, 20},
+    {2, 2, 20, 20},
+    {10, 10, 20, 20},
+    {3, 3, 20, 20}
+  };
+  if (getGameObjects(GameObjectType::ENEMY).size() == 0) {
+    int s = rand() % count;
+    auto& rows = scenarios[s][0];
+    auto& cols = scenarios[s][1];
+    auto& width = scenarios[s][2];
+    auto& height = scenarios[s][3];
+    auto totalWidth = width * cols;
+    auto maxWidthPos = mWidth - totalWidth;
+    auto xPos = rand() % maxWidthPos;
+    createFormation(Vector2D<float>(xPos,10),
+		    rows,cols,width,height);
+  }
+}
+
 void World::update(const Input& input, int elapsedMSec) {
+  switch (mState) {
+  case GameState::RUNNING:
+    updateRunning(input, elapsedMSec);
+    break;
+  case GameState::GAMEOVER:
+    break;
+  }
+}
+
+void World::updateRunning(const Input& input, int elapsedMSec) {
   Vector2D<float> dir {0.0, 0.0};
   if (input.getUp()) {
     dir.setY(-1.0);
@@ -93,16 +156,8 @@ void World::update(const Input& input, int elapsedMSec) {
   mShip.setDir(dir);
   mShip.move(elapsedMSec);
   updateGameObjects(elapsedMSec);
-  auto collisions = collisionDetect(getGameObjects(GameObjectType::BULLET),
-				    getGameObjects(GameObjectType::ENEMY));
-  auto& collidedBullets = get<0>(collisions);
-  for (auto bullet : collidedBullets) {
-    removeGameObject(GameObjectType::BULLET, bullet);
-  }
-  auto& collidedEnemies = get<1>(collisions);
-  for (auto enemy : collidedEnemies) {
-    removeGameObject(GameObjectType::ENEMY, enemy);
-  }
+  resolveCollisions();
+  spawnEnemies();
 }
 
 const GameObjects& World::getEnemies() const {

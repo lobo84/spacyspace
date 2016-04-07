@@ -2,8 +2,9 @@
 
 
 void Renderer::renderShip(const GameObject& ship, RenderWindow& window) {
-  CircleShape shape(ship.getWidth()*2, 3);
-  shape.setPosition(ship.getPos().getX()-ship.getWidth()*2, ship.getPos().getY());
+  CircleShape shape(ship.getWidth()/2, 3);
+  shape.setPosition(ship.getPos().getX()-ship.getWidth()/2,
+		    ship.getPos().getY()-ship.getHeight()/2);
   // set the shape color to green
   shape.setFillColor(Color(100, 250, 50));
   //  set a 10-pixel wide orange outline
@@ -13,13 +14,13 @@ void Renderer::renderShip(const GameObject& ship, RenderWindow& window) {
 }
 
 void Renderer::renderEnemyShip(const GameObject& ship, RenderWindow& window) {
-  CircleShape shape(10);
-  shape.setPosition(ship.getPos().getX(), ship.getPos().getY());
+  CircleShape shape(ship.getWidth()/2);
+  shape.setPosition(ship.getPos().getX()-ship.getWidth()/2,
+		    ship.getPos().getY()-ship.getHeight()/2);
+
   // set the shape color to green
   shape.setFillColor(Color(100, 250, 50));
   // set a 10-pixel wide orange outline
-  shape.setOutlineThickness(10);
-  shape.setOutlineColor(Color(250, 150, 100));
   window.draw(shape);  
 }
 
