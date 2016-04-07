@@ -3,17 +3,13 @@
 #include <functional>
 #include <memory>
 
-
-
 World::World(int width, int height) : mWidth(width),
 				      mHeight(height),
-				      mShip{Vector2D<float>(50,height-150), Vector2D<float>(0,0),50, 50, 1}
+				      mShip{Vector2D<float>(50,height-150),
+                                            Vector2D<float>(0,0),50, 50, 1}
 {
-  for (int i = 0; i < 10; ++i) {
-    auto pos = Vector2D<float>(i * 40, 20);
-    auto dir = Vector2D<float>(0,1);
-    addGameObject(GameObjectType::ENEMY, new GameObject(pos,dir, 50, 50,0.1));
-  }
+    Vector2D<float> pos(40, 20);
+    createFormation(pos, 5,5);
 }
 
 void World::addGameObject(GameObjectType type, GameObject* gameObject) {
@@ -33,6 +29,21 @@ GameObjects& World::getGameObjects(GameObjectType type) {
   return mGameObjects[static_cast<int>(type)];
 }
 
+void World::createFormation(Vector2D<float> pos, int rows, int cols) {
+  const int width = 50;
+  const int height = 50;
+  for (int row = 0; row < rows; row++) {
+    for (int col = 0; col < cols; col++) {
+      auto x = pos.getX() + row * width;
+      auto y = pos.getY() + col * height;
+      Vector2D<float> enemyPos(x, y);
+      Vector2D<float> dir(0,1);
+      auto enemy = new GameObject(enemyPos,dir,width,height,0.1);
+      addGameObject(GameObjectType::ENEMY, enemy);
+    }
+  }
+}
+
 void World::updateGameObjects(int elapsedMSec) {
   for (auto t = 0; t < static_cast<int>(GameObjectType::COUNT); t++) {
     auto type = static_cast<GameObjectType>(t);
@@ -46,7 +57,8 @@ void World::updateGameObjects(int elapsedMSec) {
   }
 }
 
-tuple<set<GameObject*>,set<GameObject*>> World::collisionDetect(GameObjects& gs1, GameObjects& gs2){
+tuple<set<GameObject*>,set<GameObject*>> World::collisionDetect(GameObjects& gs1,
+								GameObjects& gs2){
   tuple<set<GameObject*>,set<GameObject*>> gSets;
   for (auto g1 : gs1) {
     for (auto g2 : gs2) {
@@ -103,4 +115,13 @@ const GameObjects& World::getBullets() const {
 
 GameObject World::getShip() const {
   return mShip;
+}
+
+World::~World() {
+  for (auto t = 0; t < static_cast<int>(GameObjectType::COUNT); t++) {
+    auto type = static_cast<GameObjectType>(t);
+    for (auto g : getGameObjects(type)) {      
+      delete g;
+    }
+  }
 }

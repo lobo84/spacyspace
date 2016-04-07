@@ -15,6 +15,7 @@ using GameObjects = set<GameObject*>;
 class World {
  public:
   World(int width, int height);
+  ~World();
   void update(const Input& input, int elapsedMSec);
   GameObject getShip() const;
   const GameObjects& getEnemies() const;
@@ -26,7 +27,7 @@ class World {
   void removeGameObject(GameObjectType type, GameObject* gameObject);
   const GameObjects& getGameObjects(GameObjectType type) const;
   GameObjects& getGameObjects(GameObjectType type);
-  
+  void createFormation(Vector2D<float> pos, int rows, int cols);
   int mWidth;
   int mHeight;
   World();
